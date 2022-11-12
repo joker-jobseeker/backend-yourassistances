@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  db-prod:
+    container_name: ptf-db-prod
+    restart: on-failure
+    image: postgres:13
+    env_file:
+      - .env
+    ports:
+      - 5434:${DB_PORT}
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_NAME=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PWD}
+      - POSTGRES_DB=${DB_NAME}
+
+    networks:
+      - flask-ptf-production-network
+  ptf-api-prod:
+    container_name: "flask-ptf-container-prod"
+    restart: always
+    build:
+      context: .
+    working_dir: /app/
+    command: gunicorn --bind ${APP_IP}:${APP_PORT} manage:app
+    env_file:
+      - .env
+    environment:
+      - FLASK_APP=${FLASK_APP}
+      - FLASK_ENV=${FLASK_ENV}
+      - DATABASE_URI=${DATABASE_URI}
+    volumes:
+      - .:/app
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    depends_on:
+      - db-prod
+    networks:
+      - flask-ptf-production-network
+  nginx:
+    build: ./nginx
+    volumes:
+      - media:/app/backend/media/
+    container_name: ptf-nginx
+    env_file:
+      - .env
+    ports:
+      - 1338:80
+    depends_on:
+      - ptf-api-prod
+    networks:
+      - flask-ptf-production-network
+networks:
+  flask-ptf-production-network:
+    driver: bridge
+volumes:
+  data:
+  media:
