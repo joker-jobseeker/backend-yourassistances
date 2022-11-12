@@ -2,9 +2,10 @@ from flask_restx import Resource, reqparse
 from flask import jsonify, abort, make_response
 from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies
 from flask_login import login_user
+from sqlalchemy.exc import IntegrityError
 
 from core.api.schema import yoa_schemas
-from core.models import YourAssistance, User
+from core.models import YourAssistance, Users
 from core.ext import db
 
 
@@ -12,38 +13,39 @@ class Register(Resource):
     def post(self):
         register_parser = reqparse.RequestParser()
         register_parser.add_argument(
-            'email', location='json', type=str, required=True
+            "username", location="json", type=str, required=True
         )
         register_parser.add_argument(
-            'userName', location='json', type=str, required=True
-        )
+            "email", location="json", type=str, required=True)
         register_parser.add_argument(
-            'passwordHash', location='json', type=str, required=True 
+            "password", location="json", type=str, required=True
         )
 
         args = register_parser.parse_args()
+        username = args["username"]
         email = args["email"]
-        userName = args['userName']
-        passwordHash = args['passwordHash']
-        passwordHash = User.__init__(passwordHash)
+        password = args["password"]
+        password = Users.generate_hash(password)
         
-        if email == "" or userName == "" or passwordHash == "":
-            return jsonify({"message": "incorrect Username or Password"})
+        if username == "" or email == "" or password == "":
+            return jsonify({"message": "Incorrect Username or Password"}), 400
 
         # save to database
         try:
-            new_user = User(email=email, username=userName, password=passwordHash)
+            new_user = Users(username=username, email=email, password=password)
             db.session.add(new_user)
             db.session.commit()
 
-            #creating access token
-            access_token = create_access_token(identify=userName)
-        except:
-            return abort(400, f'Email {email}, is already exist')
+            # creating acess token
+            access_token = create_access_token(identity=username)
+
+        except IntegrityError:
+            return abort(400, f"User {username} is Already Exist")
+
         return jsonify(
             {
-                "message": "User Created successfully",
-                "token": access_token
+                "message": "User created successfully",
+                "token": access_token,
             }
         )
 
@@ -62,11 +64,11 @@ class Login(Resource):
             return jsonify({"message": "No file selected"}), 401
 
         email = email.lower()
-        current_user = User.__init__(email)
+        current_user = Users.__init__(email)
         if not current_user:
             return jsonify({"message": "User Not Found"}), 401
 
-        if User.check_password(password, current_user.password):
+        if Users.check_password(password, current_user.password):
             current_user.authenticated = True
             access_token = create_access_token(identity=email)
 

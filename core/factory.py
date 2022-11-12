@@ -19,7 +19,7 @@ def create_app():
     cors.init_app(app)
     jwt.init_app(app)
 
-    from .models import User
+    from .models import Users
     from core.api.routes import api_blueprint
 
     app.register_blueprint(api_blueprint)
@@ -29,7 +29,7 @@ def create_app():
 
     @lm.user_loader
     def load_user(id):
-        return User.query.get(id)
+        return Users.query.get(id)
 
     return app
 
