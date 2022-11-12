@@ -3,7 +3,7 @@ from flask_restx import Api
 
 from .views import YoaView, Login, Register
 
-api_blueprint = Blueprint("api", __name__, url_prefix="/yoa/v1")
+api_blueprint = Blueprint("api", __name__, url_prefix="/api")
 
 api = Api(
     api_blueprint,
