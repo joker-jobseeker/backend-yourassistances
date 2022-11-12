@@ -8,7 +8,6 @@ from core.api.schema import yoa_schemas
 from core.models import YourAssistance, Users
 from core.ext import db
 
-
 class Register(Resource):
     def post(self):
         register_parser = reqparse.RequestParser()
@@ -25,7 +24,7 @@ class Register(Resource):
         username = args["username"]
         email = args["email"]
         password = args["password"]
-        password = Users.generate_hash(password)
+        password = Users.generate_password_hash(password)
         
         if username == "" or email == "" or password == "":
             return jsonify({"message": "Incorrect Username or Password"}), 400
