@@ -7,12 +7,9 @@ DB_NAME = 'database.db'
 def create_app():
     app = Flask(__name__)
 
-    app.config['SECRET_KEY'] = 'kntl kntl'
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_NAME}'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    # development config
+    app.config.from_object('core.config.DevelopmentConfig')
 
-    # Setup the Flask-JWT-Extended extension
-    app.config["JWT_SECRET_KEY"] = "kntl-kntl"  
     db.init_app(app)
     mi.init_app(app, db)
     ma.init_app(app)

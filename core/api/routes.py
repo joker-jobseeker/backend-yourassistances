@@ -14,4 +14,4 @@ api = Api(
 
 api.add_resource(YoaView, '/yoa')
 api.add_resource(Login, "/login-user")
-api.add_resource(Register, "/register-acc")
+api.add_resource(Register, "/register")

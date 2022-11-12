@@ -1,6 +1,7 @@
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 from werkzeug.security import generate_password_hash, check_password_hash
+from passlib.hash import pbkdf2_sha256
 
 from .ext import db
 
@@ -20,11 +21,34 @@ class Users(db.Model, UserMixin):
         self.username = username
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self,password):
-        return check_password_hash(self.password_hash,password)
+   # method
+    @property
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        return self.authenticated
+    
+    @property
+    def is_active(self):
+        """Always True, as all users are active."""
+        return True
+    
+    @staticmethod
+    def generate_hash(password):
+        return pbkdf2_sha256.hash(password)
+
+    @staticmethod
+    def verify_hash(password, hash):
+        return  pbkdf2_sha256.verify(password, hash)
+    
+    @classmethod
+    def find_by_username(cls, username):
+        return cls.query.filter_by(username=username).first()
+    
+    def __repr__(self):
+        return f'<User {self.username}>'
 
 class YourAssistance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     data = db.Column(db.String(20000))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('User.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('Users.id'))

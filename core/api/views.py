@@ -24,7 +24,7 @@ class Register(Resource):
         username = args["username"]
         email = args["email"]
         password = args["password"]
-        password = Users.generate_password_hash(password)
+        password = Users.generate_hash(password)
         
         if username == "" or email == "" or password == "":
             return jsonify({"message": "Incorrect Username or Password"}), 400
