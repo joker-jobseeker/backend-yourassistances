@@ -1,5 +1,5 @@
 from flask_restx import Resource, reqparse
-from flask import jsonify, abort, make_response, request
+from flask import jsonify, abort, make_response
 from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies
 from flask_login import login_user, current_user
 from sqlalchemy.exc import IntegrityError
@@ -145,19 +145,29 @@ class YoaView(Resource):
             }
         )
 
-    # task untuk wira
-
     def put(self):
-        # note = YourAssistance.query.get(id)
-        # n
+        
+        id = request.get_json(force=True)['id']
+        todo = YourAssistance.query.get(int(id))
 
-        pass
+        try:
+            new_title = request.get_json(force=True)['title']
+            todo.title = new_title
+            db.session.commit()
+        except:
+            pass
+        try:
+            new_data = request.get_json(force=True)['data']
+            todo.data =  new_data
+            db.session.commit()
+            return jsonify('oks')
+        except:
+            pass
+        
 
     def delete(self):
-        note = json.loads(request.data)
-        noteId = note['noteId']
-        note = YourAssistance.query.get(noteId)
-        if note:
-            if note.user_id == current_user.id:
-                db.session.delete(note)
-                db.session.commit()
+        id = request.get_json(force=True)['id']
+        todo = YourAssistance.query.get(int(id))
+        db.session.delete(todo)
+        db.session.commit()
+        return jsonify("delete sukses")

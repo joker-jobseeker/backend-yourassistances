@@ -1,5 +1,4 @@
 from flask import Flask
-
 from .ext import db, ma, mi, lm, cors, jwt
 
 DB_NAME = 'database.db'
