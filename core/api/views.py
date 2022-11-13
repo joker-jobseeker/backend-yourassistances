@@ -52,23 +52,26 @@ class Register(Resource):
 class Login(Resource):
     def post(self):
         login_parser = reqparse.RequestParser()
-        login_parser.add_argument("email", location="json", type=str, required=True)
-        login_parser.add_argument("password", location="json", type=str, required=True)
+        login_parser.add_argument(
+            "username", location="json", type=str, required=True)
+        login_parser.add_argument(
+            "password", location="json", type=str, required=True)
 
         args = login_parser.parse_args()
+        
         email = args["email"]
         password = args["password"]
+
 
         if email == "" or password == "":
             return jsonify({"message": "No file selected"}), 401
 
         email = email.lower()
-        current_user = Users.__init__(email)
+        current_user = Users.find_by_email(email)
         if not current_user:
-            return jsonify({"message": "User Not Found"}), 401
+            return jsonify({"message": "User not found"}), 400
 
-        if Users.check_password(password, current_user.password):
-            current_user.authenticated = True
+        if Users.verify_hash(password, current_user.password):
             access_token = create_access_token(identity=email)
 
             # save to database
@@ -77,20 +80,22 @@ class Login(Resource):
             login_user(current_user)
             response = jsonify(
                 {
-                    "identity": current_user.email,
-                    "token": access_token
+                    "identity": current_user.username,
+                    "token": access_token,
                 }
             )
 
             # set access token in cookie
             set_access_cookies(response, access_token)
             return response
+
         else:
             make_response(
-                "could not verify",
-                402,
-                {"www-Authenticate": 'Basic realm="Login Required"'}
+                "Could not verify",
+                401,
+                {"WWW-Authenticate": 'Basic realm="Login Required"'},
             )
+
 
 
 class Logout(Resource):

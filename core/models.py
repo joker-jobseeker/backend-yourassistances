@@ -10,23 +10,17 @@ class Users(db.Model, UserMixin):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key = True)
-    email = db.Column(db.String(64), unique=True, index=True)
-    username = db.Column(db.String(64), unique=True, index=True)
-    password_hash = db.Column(db.String(128))
+    email = db.Column(db.String(64), unique=True)
+    username = db.Column(db.String(64), unique=True)
+    password = db.Column(db.String(128))
     is_admin = db.Column(db.Integer, default=0)
-    yourassistance = db.relationship('YourAssistance')
+    yourassistance = db.relationship('YourAssistance', backref="yourassistance", lazy=True)
 
     def __init__(self, email, username, password):
         self.email = email
         self.username = username
-        self.password_hash = generate_password_hash(password)
+        self.password = generate_password_hash(password)
 
-   # method
-    @property
-    def is_authenticated(self):
-        """Return True if the user is authenticated."""
-        return self.authenticated
-    
     @property
     def is_active(self):
         """Always True, as all users are active."""
@@ -42,13 +36,18 @@ class Users(db.Model, UserMixin):
     
     @classmethod
     def find_by_username(cls, username):
-        return cls.query.filter_by(username=username).first()
+        return cls.query.filter_by(email=username).first()
+
+    @classmethod
+    def find_by_email(cls, email):
+        return cls.query.filter_by(email=email).first()
     
     def __repr__(self):
         return f'<User {self.username}>'
 
 class YourAssistance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200))
     data = db.Column(db.String(20000))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
-    user_id = db.Column(db.Integer, db.ForeignKey('Users.id'))
+    person_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

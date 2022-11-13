@@ -12,6 +12,6 @@ api = Api(
     description="Assistance will remind you"
 )
 
-api.add_resource(YoaView, '/yoa')
-api.add_resource(Login, "/login-user")
+api.add_resource(YoaView, "/yoa")
+api.add_resource(Login, "/login")
 api.add_resource(Register, "/register")
