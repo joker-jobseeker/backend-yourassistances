@@ -131,10 +131,11 @@ class YoaView(Resource):
     def post(self):
         title = request.form.get('title')
         data = request.form.get('data')
-        if len(title) < 3:
-            return abort(400, "your title is too short")
-        if len(data) < 50:
-            return abort(400, "your paragraph is too short")
+        # if len(title) < 3:
+        #     return abort(400, "your title is too short")
+        # if len(data) < 50:
+        #     return abort(400, "your paragraph is too short")
+
         new_post = YourAssistance(title=title, data=data)
         db.session.add(new_post)
         db.session.commit()

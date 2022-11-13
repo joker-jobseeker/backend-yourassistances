@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_restx import Api
 
-from .views import YoaView, Login, Register
+from .views import YoaView, Login, Register, Logout
 
 api_blueprint = Blueprint("api", __name__, url_prefix="/api")
 
@@ -15,3 +15,4 @@ api = Api(
 api.add_resource(YoaView, "/yoa")
 api.add_resource(Login, "/login")
 api.add_resource(Register, "/register")
+api.add_resource(Logout, "/logout")
