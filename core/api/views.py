@@ -47,13 +47,14 @@ class Register(Resource):
 
         # save to database
         try:
-            new_user = Users(username=username, email=email, password=password)
-            print(new_user.email)
+            new_user = Users(username=username, email=email, password=Users.generate_hash(password))
             db.session.add(new_user)
             db.session.commit()
+            print("aman")
 
         except IntegrityError:
             db.session.rollback()
+
 
         return jsonify(
             {

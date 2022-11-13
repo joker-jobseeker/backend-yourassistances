@@ -19,27 +19,27 @@ class Users(db.Model, UserMixin):
     def __init__(self, email, username, password):
         self.email = email
         self.username = username
-        self._password = generate_password_hash(password)
+        self.password = password
 
-    def check_password(self, _password):
-        pbkdf2_sha256.hash(_password)
+    # def check_password(self, password):
+    #     pbkdf2_sha256.hash(password)
 
-    @property
-    def is_active(self):
-        """Always True, as all users are active."""
-        return True
+    # @property
+    # def is_active(self):
+    #     """Always True, as all users are active."""
+    #     return True
     
     @staticmethod
-    def generate_hash(_password):
-        return pbkdf2_sha256.hash(_password)
+    def generate_hash(password):
+        return pbkdf2_sha256.hash(password)
 
     @staticmethod
-    def verify_hash(_password, hash):
-        return  pbkdf2_sha256.verify(_password, hash)
+    def verify_hash(password, hash):
+        return  pbkdf2_sha256.verify(password, hash)
     
-    @classmethod
-    def find_by_username(cls, username):
-        return cls.query.filter_by(username=username).first()
+    # @classmethod
+    # def find_by_username(cls, username):
+    #     return cls.query.filter_by(username=username).first()
 
     @classmethod
     def find_by_email(cls, email):
