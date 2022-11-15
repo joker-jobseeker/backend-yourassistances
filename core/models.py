@@ -13,21 +13,14 @@ class Users(db.Model, UserMixin):
     email = db.Column(db.String(64), unique=True)
     username = db.Column(db.String(64), unique=True)
     password = db.Column(db.String(300),nullable=False )
-    is_admin = db.Column(db.Integer, default=0)
+    is_admin = db.Column(db.Boolean, default=0)
+    is_login = db.Column(db.Boolean, default=0)
     yourassistance = db.relationship('YourAssistance', backref="yourassistance", lazy=True)
 
     def __init__(self, email, username, password):
         self.email = email
         self.username = username
         self.password = password
-
-    # def check_password(self, password):
-    #     pbkdf2_sha256.hash(password)
-
-    # @property
-    # def is_active(self):
-    #     """Always True, as all users are active."""
-    #     return True
     
     @staticmethod
     def generate_hash(password):

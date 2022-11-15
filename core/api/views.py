@@ -60,30 +60,28 @@ class Login(Resource):
         password = args["password"]
 
         if email == "" or password == "":
-            return jsonify({"message": "No file selected"}), 401
+            return make_response(jsonify({"message": "No file selected"}), 401)
 
         email = email.lower()
         current_user = Users.find_by_email(email=email)
         if not current_user:
-            return jsonify({"message": "User not found"}), 400
+            return make_response(jsonify({"message": "User not found"}), 400)
 
         if Users.verify_hash(password, current_user.password):
             access_token = create_access_token(identity=email)
-
-            # save to database
-            db.session.add(current_user)
+            current_user.is_login = True
             db.session.commit()
-            login_user(current_user)
-            response = jsonify(
-                {
+
+            response = make_response(jsonify(
+                {   "user_id": current_user.id,
                     "identity": current_user.username,
                     "token": access_token
                 }
-            )
+            ), 200)
 
             # set access token in cookie
             set_access_cookies(response, access_token)
-            # raise Exception(response)
+
             return response
 
         else:
@@ -95,7 +93,12 @@ class Login(Resource):
 
 
 class Logout(Resource):
+    @jwt_required()
     def post(self):
+        email = get_jwt_identity()
+        current_user = Users.find_by_email(email=email)
+        current_user.is_login = False
+        db.session.commit()
         response = make_response(jsonify({"message": "Logged out"}))
 
         # unsetting access token in cooke
@@ -106,81 +109,98 @@ class Logout(Resource):
 class YoaView(Resource):
     @jwt_required()
     def get(self):
-        assistances = YourAssistance.query.all()
-        result = []
         email = get_jwt_identity()
         current_user = Users.find_by_email(email=email)
-        for assistance in assistances:
-            dict_res = {}
-            dict_res["id"] = assistance.id
-            dict_res["title"] = assistance.title
-            dict_res["data"] = assistance.data
-            dict_res["date"] = assistance.date
-            dict_res["user_id"] = assistance.person_id
-            result.append(dict_res)
-        return make_response(jsonify({"message":result, "email":email}), 200)
+        if current_user.is_login:
+            assistances = YourAssistance.query.all()
+            result = []
+            
+            for assistance in assistances:
+                dict_res = {}
+                dict_res["id"] = assistance.id
+                dict_res["title"] = assistance.title
+                dict_res["data"] = assistance.data
+                dict_res["date"] = assistance.date
+                dict_res["user_id"] = assistance.person_id
+                result.append(dict_res)
+            return make_response(jsonify({"message":result, "email":email}), 200)
+        else:
+            return make_response(jsonify({"message":"You are already log out "}), 401)
 
     @jwt_required()
     def post(self):
-        title = request.get_json(force=True)['title']
-        data = request.get_json(force=True)['data']
-
         email = get_jwt_identity()
         current_user = Users.find_by_email(email=email)
 
-        new_post = YourAssistance(title=title, data=data, person_id=current_user.id)
-        db.session.add(new_post)
-        db.session.commit()
-        return make_response(jsonify(
-            {
-                "value": title,
-                "status": "crot",
-            }
-        ), 200)
+        if current_user.is_login:
+            title = request.get_json(force=True)['title']
+            data = request.get_json(force=True)['data']
+
+            new_post = YourAssistance(title=title, data=data, person_id=current_user.id)
+            db.session.add(new_post)
+            db.session.commit()
+            return make_response(jsonify(
+                {
+                    "value": title,
+                    "status": "success",
+                }
+            ), 200)
+        
+        else:
+            return make_response(jsonify({"message":"You are already log out "}), 401)
 
     @jwt_required()
     def put(self):
-        
-        id = int(request.get_json(force=True)['id'])
-        message = []
         email = get_jwt_identity()
         current_user = Users.find_by_email(email=email)
-        try:
-            todo = YourAssistance.query.get(id)
-            if current_user.id == todo.person_id:
-                try:
-                    new_title = request.get_json(force=True)['title']
-                    todo.title = new_title
-                    db.session.commit()
-                    message.append("Edit title success")
-                except:
-                    pass
-                try:
-                    new_data = request.get_json(force=True)['data']
-                    todo.data =  new_data
-                    db.session.commit()
-                    message.append("Edit data success")
-                except:
-                    pass
-                
-                return make_response(jsonify({"message":message}), 200)
-            else:
-                return make_response(jsonify({"message": "You are not eligible to edit this post"}), 401)
-        except:
-            return make_response(jsonify({"message": "can't find post."}), 401)
+
+        if current_user.is_login:
+            id = int(request.get_json(force=True)['id'])
+            message = []
+            
+            try:
+                todo = YourAssistance.query.get(id)
+                if current_user.id == todo.person_id:
+                    try:
+                        new_title = request.get_json(force=True)['title']
+                        todo.title = new_title
+                        db.session.commit()
+                        message.append("Edit title success")
+                    except:
+                        pass
+                    try:
+                        new_data = request.get_json(force=True)['data']
+                        todo.data =  new_data
+                        db.session.commit()
+                        message.append("Edit data success")
+                    except:
+                        pass
+                    
+                    return make_response(jsonify({"message":message}), 200)
+                else:
+                    return make_response(jsonify({"message": "You are not eligible to edit this post"}), 401)
+            except:
+                return make_response(jsonify({"message": "can't find post."}), 401)
+        else:
+            return make_response(jsonify({"message":"You are already log out "}), 401)
         
     @jwt_required()
     def delete(self):
-        id = int(request.get_json(force=True)['id'])
+        
         email = get_jwt_identity()
         current_user = Users.find_by_email(email=email)
-        try:
-            todo = YourAssistance.query.get(id)
-            if current_user.id == todo.person_id:
-                db.session.delete(todo)
-                db.session.commit()
-                return make_response(jsonify({"message":"delete success."}), 200)
-            else:
-                return make_response(jsonify({"message": "You are not eligible to edit this post."}), 401)
-        except:
-            return make_response(jsonify({"message": "can't find post."}), 401)
+
+        if current_user.is_login:
+            id = int(request.get_json(force=True)['id'])
+            try:
+                todo = YourAssistance.query.get(id)
+                if current_user.id == todo.person_id:
+                    db.session.delete(todo)
+                    db.session.commit()
+                    return make_response(jsonify({"message":"delete success."}), 200)
+                else:
+                    return make_response(jsonify({"message": "You are not eligible to delete this post."}), 401)
+            except:
+                return make_response(jsonify({"message": "can't find post."}), 401)
+        else:
+            return make_response(jsonify({"message":"You are already log out "}), 401)
