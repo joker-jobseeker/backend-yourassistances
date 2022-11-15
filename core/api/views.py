@@ -1,6 +1,6 @@
 from flask_restx import Resource, reqparse
-from flask import jsonify, abort, make_response
-from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies
+from flask import jsonify, abort, make_response, request
+from flask_jwt_extended import create_access_token, jwt_required, set_access_cookies, unset_jwt_cookies, get_jwt_identity
 from flask_login import login_user, current_user
 from sqlalchemy.exc import IntegrityError
 import json
@@ -28,24 +28,6 @@ class Register(Resource):
         email = args["email"]
         password = args["password"]
 
-        # passwordhash = Users.generate_hash(password)
-
-        # kondisi kalo kosong semua
-        # if username == "" or email == "" or password == "":
-        #     return abort(400, "username, email, or password doesn't fill")
-
-        # # buat kondisi  password
-        # elif password == "":
-        #     return abort(400, "Password can't be empty")
-        # elif len(password) <= 6:
-        #     return abort(400, "password must more than 6 character")
-
-        # if email == "":
-        #     return abort(400, "Username can't be empty")
-        # elif username == "":
-        #     return abort(400, "Username can't be empty")
-
-        # save to database
         try:
             new_user = Users(username=username, email=email, password=Users.generate_hash(password))
             db.session.add(new_user)
@@ -122,52 +104,83 @@ class Logout(Resource):
 
 
 class YoaView(Resource):
-    # @jwt_required()
+    @jwt_required()
     def get(self):
         assistances = YourAssistance.query.all()
-        return yoa_schemas.dump(assistances)
+        result = []
+        email = get_jwt_identity()
+        current_user = Users.find_by_email(email=email)
+        for assistance in assistances:
+            dict_res = {}
+            dict_res["id"] = assistance.id
+            dict_res["title"] = assistance.title
+            dict_res["data"] = assistance.data
+            dict_res["date"] = assistance.date
+            dict_res["user_id"] = assistance.person_id
+            result.append(dict_res)
+        return make_response(jsonify({"message":result, "email":email}), 200)
 
-     # task untuk wira
+    @jwt_required()
     def post(self):
-        title = request.form.get('title')
-        data = request.form.get('data')
-        # if len(title) < 3:
-        #     return abort(400, "your title is too short")
-        # if len(data) < 50:
-        #     return abort(400, "your paragraph is too short")
+        title = request.get_json(force=True)['title']
+        data = request.get_json(force=True)['data']
 
-        new_post = YourAssistance(title=title, data=data)
+        email = get_jwt_identity()
+        current_user = Users.find_by_email(email=email)
+
+        new_post = YourAssistance(title=title, data=data, person_id=current_user.id)
         db.session.add(new_post)
         db.session.commit()
-        return jsonify(
+        return make_response(jsonify(
             {
-                "message": "Your Assistance will remind you"
+                "value": title,
+                "status": "crot",
             }
-        )
+        ), 200)
 
+    @jwt_required()
     def put(self):
         
-        id = request.get_json(force=True)['id']
-        todo = YourAssistance.query.get(int(id))
-
+        id = int(request.get_json(force=True)['id'])
+        message = []
+        email = get_jwt_identity()
+        current_user = Users.find_by_email(email=email)
         try:
-            new_title = request.get_json(force=True)['title']
-            todo.title = new_title
-            db.session.commit()
+            todo = YourAssistance.query.get(id)
+            if current_user.id == todo.person_id:
+                try:
+                    new_title = request.get_json(force=True)['title']
+                    todo.title = new_title
+                    db.session.commit()
+                    message.append("Edit title success")
+                except:
+                    pass
+                try:
+                    new_data = request.get_json(force=True)['data']
+                    todo.data =  new_data
+                    db.session.commit()
+                    message.append("Edit data success")
+                except:
+                    pass
+                
+                return make_response(jsonify({"message":message}), 200)
+            else:
+                return make_response(jsonify({"message": "You are not eligible to edit this post"}), 401)
         except:
-            pass
-        try:
-            new_data = request.get_json(force=True)['data']
-            todo.data =  new_data
-            db.session.commit()
-            return jsonify('oks')
-        except:
-            pass
+            return make_response(jsonify({"message": "can't find post."}), 401)
         
-
+    @jwt_required()
     def delete(self):
-        id = request.get_json(force=True)['id']
-        todo = YourAssistance.query.get(int(id))
-        db.session.delete(todo)
-        db.session.commit()
-        return jsonify("delete sukses")
+        id = int(request.get_json(force=True)['id'])
+        email = get_jwt_identity()
+        current_user = Users.find_by_email(email=email)
+        try:
+            todo = YourAssistance.query.get(id)
+            if current_user.id == todo.person_id:
+                db.session.delete(todo)
+                db.session.commit()
+                return make_response(jsonify({"message":"delete success."}), 200)
+            else:
+                return make_response(jsonify({"message": "You are not eligible to edit this post."}), 401)
+        except:
+            return make_response(jsonify({"message": "can't find post."}), 401)
