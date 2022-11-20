@@ -6,9 +6,7 @@ from passlib.hash import pbkdf2_sha256
 from .ext import db
 
 class Users(db.Model, UserMixin):
-
     __tablename__ = 'users'
-
     id = db.Column(db.Integer, primary_key = True)
     email = db.Column(db.String(64), unique=True)
     username = db.Column(db.String(64), unique=True)

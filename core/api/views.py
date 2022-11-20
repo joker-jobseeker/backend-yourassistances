@@ -28,14 +28,15 @@ class Register(Resource):
         email = args["email"]
         password = args["password"]
 
+
         try:
             new_user = Users(username=username, email=email, password=Users.generate_hash(password))
             db.session.add(new_user)
             db.session.commit()
             print("aman")
-
         except IntegrityError:
             db.session.rollback()
+            return jsonify({"message":"user already registered"})
 
 
         return jsonify(
@@ -104,7 +105,6 @@ class Logout(Resource):
         # unsetting access token in cooke
         unset_jwt_cookies(response)
         return response
-
 
 class YoaView(Resource):
     @jwt_required()
